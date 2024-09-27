@@ -8,13 +8,31 @@ from django.views.decorators.csrf import csrf_exempt
 
 # Create your views here.
 @csrf_exempt
-@api_view(http_method_names=['GET'])
+@api_view(http_method_names=['GET', 'PUT'])
 def agendamento_detail(request, id):
-    obj = get_object_or_404(Agendamento, id=id)
-    print(obj)
-    serializer = AgendamentoSerializer(obj)
-    print(serializer)
-    return JsonResponse(serializer.data)
+    if request.method == "GET":
+        obj = get_object_or_404(Agendamento, id=id)
+        print(obj)
+        serializer = AgendamentoSerializer(obj)
+        print(serializer)
+        return JsonResponse(serializer.data)
+    
+    if request.method == "PUT":
+        obj = get_object_or_404(Agendamento, id=id)
+        request.data
+        serializer = AgendamentoSerializer(data=request.data)
+        if serializer.is_valid():
+            v_data = serializer.validated_data
+            obj.dataHorario = v_data.get("dataHorario", obj.dataHorario)
+            obj.nomeCliente = v_data.get("nomeCliente", obj.nomeCliente)
+            obj.emailCliente = v_data.get("emailCliente", obj.emailCliente)
+            obj.telefoneCliente = v_data.get("telefoneCliente", obj.telefoneCliente)
+            obj.save()
+            return JsonResponse(serializer.data, status=200)
+        return JsonResponse(serializer.errors, status=400)
+
+
+
 
 @api_view(http_method_names=["GET", "POST"])
 def agendamento_list(request):
