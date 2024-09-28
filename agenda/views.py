@@ -4,11 +4,12 @@ from agenda.serializers import AgendamentoSerializer
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.response import Response
 
 
 # Create your views here.
 @csrf_exempt
-@api_view(http_method_names=['GET', 'PUT'])
+@api_view(http_method_names=['GET', 'PATCH', 'DELETE'])
 def agendamento_detail(request, id):
     if request.method == "GET":
         obj = get_object_or_404(Agendamento, id=id)
@@ -17,21 +18,20 @@ def agendamento_detail(request, id):
         print(serializer)
         return JsonResponse(serializer.data)
     
-    if request.method == "PUT":
+    if request.method == "PATCH":
         obj = get_object_or_404(Agendamento, id=id)
         request.data
-        serializer = AgendamentoSerializer(data=request.data)
+        serializer = AgendamentoSerializer(obj, data=request.data, partial=True)
         if serializer.is_valid():
-            v_data = serializer.validated_data
-            obj.dataHorario = v_data.get("dataHorario", obj.dataHorario)
-            obj.nomeCliente = v_data.get("nomeCliente", obj.nomeCliente)
-            obj.emailCliente = v_data.get("emailCliente", obj.emailCliente)
-            obj.telefoneCliente = v_data.get("telefoneCliente", obj.telefoneCliente)
-            obj.save()
+           
+            serializer.save()
             return JsonResponse(serializer.data, status=200)
         return JsonResponse(serializer.errors, status=400)
 
-
+    if request.method =="DELETE":
+        obj = get_object_or_404(Agendamento,id=id)
+        obj.delete()
+        return Response(status=204)
 
 
 @api_view(http_method_names=["GET", "POST"])
@@ -48,12 +48,6 @@ def agendamento_list(request):
         data = request.data
         serializer = AgendamentoSerializer(data=data)
         if serializer.is_valid():
-            validated_data = serializer.validated_data
-            Agendamento.objects.create(
-                dataHorario=validated_data["dataHorario"],
-                nomeCliente=validated_data["nomeCliente"],
-                emailCliente=validated_data["emailCliente"],
-                telefoneCliente=validated_data["telefoneCliente"]
-            )
+            serializer.save()
             return JsonResponse(serializer.data, status=201)
         return JsonResponse(serializer.errors, status=400)
