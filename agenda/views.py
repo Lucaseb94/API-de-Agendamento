@@ -1,53 +1,87 @@
 from django.shortcuts import render, get_object_or_404
 from agenda.models import Agendamento
-from agenda.serializers import AgendamentoSerializer
+from agenda.serializers import AgendamentoSerializer, PrestadorSerializer
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework import mixins, generics, permissions
+from django.contrib.auth.models import User
+from datetime import datetime, date
+from agenda.utils import get_horarios_disponiveis
+
+
+
+class IsOwnerOrCreateOnly(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if request.method == 'POST':
+            return True
+        username = request.query_params.get('username', None)
+        if request.user.username == username:
+            return True
+        return False
+
+
+class IsPrestador(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if obj.prestador == request.user:
+            return True
+        return False
+
+class Isadm(permissions.BasePermission):
+    """
+    Permissão personalizada para garantir que apenas superusuários possam acessar.
+    """
+    def has_permission(self, request, view):
+        return request.user and request.user.is_superuser
+    
+class IsSuperUser(permissions.BasePermission):
+    """
+    Permissão personalizada para garantir que apenas superusuários possam acessar.
+    """
+    def has_permission(self, request, view):
+        return request.user and request.user.is_superuser
+        
+
+
+class AgendamentoList(generics.ListCreateAPIView):
+    serializer_class = AgendamentoSerializer
+    permission_classes = [IsOwnerOrCreateOnly | IsSuperUser]
+
+    def get_queryset(self):
+        username = self.request.query_params.get("username", None)
+        return Agendamento.objects.filter(prestador__username=username)
+    
 
 
 # Create your views here.
-@csrf_exempt
-@api_view(http_method_names=['GET', 'PATCH', 'DELETE'])
-def agendamento_detail(request, id):
-    if request.method == "GET":
-        obj = get_object_or_404(Agendamento, id=id)
-        print(obj)
-        serializer = AgendamentoSerializer(obj)
-        print(serializer)
-        return JsonResponse(serializer.data)
+class AgendamentoDetail(generics.RetrieveUpdateDestroyAPIView):  
+    permission_class = [IsPrestador]
+    queryset = Agendamento.objects.all()
+    serializerClass = AgendamentoSerializer
+
+
+
+class PrestadorList(generics.ListAPIView):
+    permission_class = [Isadm]
+    serializer_class = PrestadorSerializer
+    queryset = User.objects.all()
+
+@api_view(http_method_names=['GET'])
+def get_horarios(request):
+    data = request.query_params.get('data')
     
-    if request.method == "PATCH":
-        obj = get_object_or_404(Agendamento, id=id)
-        request.data
-        serializer = AgendamentoSerializer(obj, data=request.data, partial=True)
-        if serializer.is_valid():
-           
-            serializer.save()
-            return JsonResponse(serializer.data, status=200)
-        return JsonResponse(serializer.errors, status=400)
-
-    if request.method =="DELETE":
-        obj = get_object_or_404(Agendamento,id=id)
-        obj.delete()
-        return Response(status=204)
+    if not data:
+        data = datetime.now().date()
+    else:
+        try:
+            data = datetime.fromisoformat(data).date()
+        except ValueError:
+            return Response({'error': 'Formato de data inválido. Use o formato YYYY-MM-DD.'}, status=400)
 
 
-@api_view(http_method_names=["GET", "POST"])
-def agendamento_list(request):
-    if request.method == "GET":
-        # Buscar todos os agendamentos
-        qs = Agendamento.objects.all()
-        # Serializar os dados
-        serializer = AgendamentoSerializer(qs, many=True)
-        # Retornar resposta em formato JSON
-        return JsonResponse(serializer.data, safe=False)
+    horarios_disponiveis = get_horarios_disponiveis(data)
+    horarios_list = [horario.isoformat() for horario in horarios_disponiveis]
     
-    if request.method == "POST":
-        data = request.data
-        serializer = AgendamentoSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data, status=201)
-        return JsonResponse(serializer.errors, status=400)
+    return Response(horarios_list)
