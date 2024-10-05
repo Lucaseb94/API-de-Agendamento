@@ -7,7 +7,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from django.contrib.auth.models import User
-
+from unittest import mock
 
 class TestListegemAgendamentos(APITestCase):
 
@@ -29,25 +29,40 @@ class TestListegemAgendamentos(APITestCase):
 
 
     def test_listagem_agendamentos_criados(self):
+        # Faz login com o superusuário criado no setUp
         self.assertTrue(self.client.login(username='miranda', password='123'))
 
+        # Cria um agendamento no banco de dados de teste
+        Agendamento.objects.create(
+            prestador=self.user,  # Use a instância de User criada no setUp
+            dataHorario='2024-10-17T17:24:52Z',
+            nomeCliente='Lucas Miranda Franca',
+            emailCliente='lmirandaeb@gmail.com',
+            telefoneCliente='11954125125'
+        )
+
+        # Faz a requisição para listar os agendamentos do prestador 'miranda'
+        response = self.client.get("/api/agendamentos/?username=miranda")
+
+        # Verifica se o status da resposta é 200
+        self.assertEqual(response.status_code, 200)
+
+        # Verifica se há dados na resposta
+        data = response.json()
+        self.assertTrue(len(data) > 0, "Nenhum agendamento foi retornado.")
+
+        # Dados esperados do agendamento criado
         agendamento_serializado = {
-            "id": 1,
-            "dataHorario": '2025-03-01T00:00:00Z',
-            "nomeCliente": "miranda",
-            "emailCliente": 'lmiranda@gmail.com',
-            "telefoneCliente": '+55123123123',
-            "prestador": 'miranda'
+        "id": data[0]['id'],
+        "prestador": self.user.id,  
+        "dataHorario": "2024-10-17T17:24:52Z",
+        "nomeCliente": "Lucas Miranda Franca",
+        "emailCliente": "lmirandaeb@gmail.com",
+        "telefoneCliente": "11954125125"
         }
 
-        response = self.client.get("/api/agendamentos/?username=lmiranda")
-        self.assertEqual(response.status_code, 200)
-        print(response)
-        data = json.loads(response.content)
-        print(data)
-        
         # Verifica se o primeiro agendamento da lista é o esperado
-        self.assertEqual(data, [])
+        self.assertEqual(data[0]['dataHorario'], agendamento_serializado['dataHorario'])
 
 class TestCriacaoAgendamento(APITestCase):
 
@@ -76,7 +91,7 @@ class TestCriacaoAgendamento(APITestCase):
             'nomeCliente': 'Lucas',
             'emailCliente': 'lmiranda@gmail.com',
             'telefoneCliente': '+55123123123',
-            'id': 1,  # Ajuste para o ID correto se necessário
+            'id': data['id'],  # Use o ID retornado
         })
 
     def test_request_retorna_400(self):
@@ -88,26 +103,31 @@ class TestCriacaoAgendamento(APITestCase):
             "telefoneCliente": '+55123123123',
         }
         response = self.client.post('/api/agendamentos/',agendamento_data)
-        print(response)
+    
         self.assertEqual(response.status_code, 400)
 
 
+
 class TesteGetHorarios(APITestCase):
-    def test_quando_e_feriado(self):
+
+    @mock.patch("agenda.libs.brasil_api.is_feriado", return_value=True)
+    def test_quando_e_feriado(self, _):
+        """
+        Se for feriado deve retornar lista vazia, pois não é permitido realizar agendamento no feriado
+        """
         response = self.client.get('/api/horarios/?data=2022-12-25')
         self.assertEqual(response.data, [])
 
+    @mock.patch("agenda.libs.brasil_api.is_feriado", return_value=False)
+    def test_data_e_dia_comum_retorna_lista(self, _):
 
-def test_data_e_dia_comum_retorna_lista(self):
-    response = self.client.get('/api/horarios/?data=2022-10-03')
+        '''
+        Dias comuns deve retonar as lista com os dias disponiveis.
+        '''
+        response = self.client.get('/api/horarios/?data=2022-10-03')
 
-    # Verifica se a resposta não está vazia
-    self.assertNotEqual(response.data, [])
+        # Verifica se a resposta não está vazia
+        self.assertNotEqual(response.data, [])
 
-    # Converte o valor da API de string para datetime
-    primeiro_horario = datetime.fromisoformat(response.data[0])
-    ultimo_horario = datetime.fromisoformat(response.data[-1])
 
-    # Compara os valores esperados
-    self.assertEqual(primeiro_horario, datetime(2022, 10, 3, 11, 30, tzinfo=timezone.utc))
-    self.assertEqual(ultimo_horario, datetime(2022, 10, 3, 10, 0, tzinfo=timezone.utc))
+

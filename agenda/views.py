@@ -54,8 +54,6 @@ class AgendamentoList(generics.ListCreateAPIView):
         return Agendamento.objects.filter(prestador__username=username)
     
 
-
-# Create your views here.
 class AgendamentoDetail(generics.RetrieveUpdateDestroyAPIView):  
     permission_class = [IsPrestador]
     queryset = Agendamento.objects.all()
