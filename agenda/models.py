@@ -8,3 +8,6 @@ class Agendamento(models.Model):
     nomeCliente = models.CharField(max_length=200)
     emailCliente = models.EmailField()
     telefoneCliente = models.CharField(max_length=20)
+
+    class Meta:
+        app_label = 'agenda'

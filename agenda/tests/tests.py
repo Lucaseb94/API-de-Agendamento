@@ -2,12 +2,12 @@ from rest_framework.test import APITestCase
 import json
 from agenda.models import Agendamento
 from datetime import datetime
-from django.utils import timezone
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from django.contrib.auth.models import User
 from unittest import mock
+from agenda.views import IsOwnerOrCreateOnly
 
 class TestListegemAgendamentos(APITestCase):
 
@@ -128,6 +128,5 @@ class TesteGetHorarios(APITestCase):
 
         # Verifica se a resposta não está vazia
         self.assertNotEqual(response.data, [])
-
 
 
