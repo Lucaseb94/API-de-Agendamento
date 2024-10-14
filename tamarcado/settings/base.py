@@ -31,10 +31,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-
-ALLOWED_HOSTS = ['https://api-de-agendamento-3.onrender.com', '127.0.0.1', 'localhost']
-
-
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -94,7 +91,7 @@ DATABASES = {
         'HOST': os.environ.get('DATABASE_HOST'),  
         'PORT': '',  # Se não precisar de uma porta específica, deixe vazio
         'OPTIONS': {
-            'driver': os.environ.get('DATABASE_DRIVER'),  
+            'driver': os.environ.get('DATABASE_DRIVER'),  # Corrigido
         },
     }
 }
