@@ -6,7 +6,6 @@ load_dotenv()
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
 
 DATABASES = {
     'default': {
