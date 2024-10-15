@@ -85,7 +85,7 @@ WSGI_APPLICATION = 'tamarcado.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': os.environ.get('DATABASE_ENGINE'),
+        'ENGINE': 'mssql',
         'NAME': os.environ.get('DATABASE_NAME'),  
         'USER': os.environ.get('DATABASE_USER'), 
         'PASSWORD': os.environ.get('DATABASE_PASSWORD'), 
