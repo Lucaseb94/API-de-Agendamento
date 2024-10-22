@@ -6,6 +6,7 @@ load_dotenv()
 
 DEBUG = True
 
+ALLOWED_HOSTS = os.environ.get('ALLOWED', '').split(',')
 
 DATABASES = {
     'default': {
