@@ -5,7 +5,7 @@ load_dotenv()
 
 DEBUG = False
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED', '').split(',')
+ALLOWED_HOSTS = ['*']
 
 
 DATABASES = {
@@ -22,6 +22,7 @@ DATABASES = {
     }
 }
 
+# Configurações de e-mail usando o Gmail
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
