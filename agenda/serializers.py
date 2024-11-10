@@ -50,6 +50,7 @@ class AgendamentoSerializer(serializers.ModelSerializer):
 
 
 class PrestadorSerializer(serializers.ModelSerializer):
+    agendamentos = AgendamentoSerializer(many=True, read_only=True)
     class Meta:
         model = User
         fields = ['id', 'username', 'agendamentos']
